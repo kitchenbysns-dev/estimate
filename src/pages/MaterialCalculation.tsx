@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/AuthContext';
-import { LogIn, Calculator, Loader2, ArrowLeft, Upload, File } from 'lucide-react';
+import { LogIn, Calculator, Loader2, ArrowLeft, Upload, File, Save } from 'lucide-react';
+import { v4 as uuidv4 } from 'uuid';
 import { signInWithGoogle, db } from '../lib/firebase';
 import { collection, getDocs } from 'firebase/firestore';
 import { generateMaterialCalculation } from '../lib/gemini';
+import { store } from '../lib/store';
+import { Estimation, EstimationItem } from '../types';
 
 export default function MaterialCalculation() {
   const { id } = useParams<{ id: string }>();
@@ -130,6 +133,54 @@ export default function MaterialCalculation() {
     }
   };
 
+  const handleSave = () => {
+    if (!id || !calculationResult) return;
+
+    const materials = [
+      { key: 'cement', desc: 'Cement', unit: 'Bags (50kg)' },
+      { key: 'sand', desc: 'Sand', unit: 'Cu. Ft' },
+      { key: 'aggregate', desc: 'Aggregate', unit: 'Cu. Ft' },
+      { key: 'steel', desc: 'Steel', unit: 'Kg' },
+      { key: 'bricks', desc: 'Bricks', unit: 'Pieces' },
+      { key: 'paints', desc: 'Paints', unit: 'Liters' },
+      { key: 'tiles', desc: 'Tiles', unit: 'Sq. Ft' },
+    ];
+
+    const items: EstimationItem[] = materials.map(mat => {
+      const data = calculationResult[mat.key];
+      return {
+        id: uuidv4(),
+        category: 'Materials',
+        description: mat.desc,
+        quantity: data.qty,
+        unit: mat.unit,
+        unitCost: data.qty ? data.cost / data.qty : 0,
+        totalCost: data.cost,
+        type: 'Material'
+      };
+    }).filter(item => item.quantity > 0);
+
+    const totalCost = items.reduce((sum, item) => sum + item.totalCost, 0);
+
+    const estimation: Estimation = {
+      id: uuidv4(),
+      projectId: id,
+      name: `Material Calculation${area ? ` (${area} sq ft)` : ''}`,
+      status: 'Draft',
+      items,
+      totalMaterialCost: totalCost,
+      totalLaborCost: 0,
+      totalEquipmentCost: 0,
+      totalCost,
+      estimatedTimeDays: 0,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    store.saveEstimation(estimation);
+    navigate(`/projects/${id}`);
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       <div style={{ display: 'flex', alignItems: 'center', fontSize: '14px', color: 'var(--text-muted)', cursor: 'pointer' }} onClick={() => navigate(`/projects/${id}`)}>
@@ -140,6 +191,13 @@ export default function MaterialCalculation() {
         <div className="project-title">
           <h1>Material Calculation</h1>
           <p>Calculate required materials based on area, blueprints, and current rates.</p>
+        </div>
+        <div className="actions">
+          {calculationResult && (
+            <button className="btn btn-primary" onClick={handleSave}>
+              <Save className="mr-2 h-4 w-4" /> Save as Estimation
+            </button>
+          )}
         </div>
       </header>
 
