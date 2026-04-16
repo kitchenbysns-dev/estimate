@@ -1,0 +1,25 @@
+{
+  "entities": {
+    "Rate": {
+      "title": "Rate",
+      "description": "Material or labor rate",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "category": { "type": "string" },
+        "name": { "type": "string" },
+        "unit": { "type": "string" },
+        "price": { "type": "number" },
+        "updatedAt": { "type": "string" },
+        "updatedBy": { "type": "string" }
+      },
+      "required": ["id", "category", "name", "unit", "price", "updatedAt", "updatedBy"]
+    }
+  },
+  "firestore": {
+    "/rates/{rateId}": {
+      "schema": { "$ref": "#/entities/Rate" },
+      "description": "Rates for materials and labor"
+    }
+  }
+}

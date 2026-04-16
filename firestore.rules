@@ -1,0 +1,37 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper Functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && (
+        request.auth.token.email == 'neki123nki@gmail.com' ||
+        request.auth.token.email == 'shapeandstructure@gmail.com' ||
+        request.auth.token.email == 'stha123surya@gmail.com'
+      );
+    }
+
+    function isValidRate(data) {
+      return data.keys().hasAll(['id', 'category', 'name', 'unit', 'price', 'updatedAt', 'updatedBy']) &&
+             data.id is string &&
+             data.category is string &&
+             data.name is string &&
+             data.unit is string &&
+             data.price is number && data.price >= 0 &&
+             data.updatedAt is string &&
+             data.updatedBy is string;
+    }
+
+    match /rates/{rateId} {
+      allow read: if true;
+      allow create: if isAdmin() && isValidRate(request.resource.data);
+      allow update: if isAdmin() && isValidRate(request.resource.data);
+      allow delete: if isAdmin();
+    }
+  }
+}
