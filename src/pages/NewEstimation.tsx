@@ -1,18 +1,15 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Upload, File, Loader2, Save, LogIn } from 'lucide-react';
+import { ArrowLeft, Upload, File, Loader2, Save } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 
 import { store } from '../lib/store';
 import { generateEstimation } from '../lib/gemini';
 import { Estimation, EstimationItem, Template } from '../types';
-import { useAuth } from '../lib/AuthContext';
-import { signInWithGoogle } from '../lib/firebase';
 
 export default function NewEstimation() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user } = useAuth();
   
   const [name, setName] = useState('New Estimation');
   const [manualInput, setManualInput] = useState('');
@@ -48,15 +45,6 @@ export default function NewEstimation() {
 
   const handleGenerate = async () => {
     if (!id) return;
-    
-    if (!user) {
-      try {
-        await signInWithGoogle();
-      } catch (error) {
-        console.error("Sign in failed", error);
-        return;
-      }
-    }
 
     setIsGenerating(true);
     try {

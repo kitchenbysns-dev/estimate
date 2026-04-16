@@ -28,10 +28,8 @@ service cloud.firestore {
     }
 
     match /rates/{rateId} {
-      allow read: if true;
-      allow create: if isAdmin() && isValidRate(request.resource.data);
-      allow update: if isAdmin() && isValidRate(request.resource.data);
-      allow delete: if isAdmin();
+        // Removed all authentication and validation to allow free access as requested by user
+        allow read, write: if true;
     }
   }
 }

@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../lib/AuthContext';
 import { db } from '../lib/firebase';
 import { collection, getDocs, setDoc, doc, deleteDoc } from 'firebase/firestore';
 import { Save, Plus, Trash2, Loader2 } from 'lucide-react';
@@ -16,7 +15,6 @@ interface Rate {
 }
 
 export default function Settings() {
-  const { user, isAdmin } = useAuth();
   const [rates, setRates] = useState<Rate[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -48,7 +46,7 @@ export default function Settings() {
       unit: '',
       price: 0,
       updatedAt: new Date().toISOString(),
-      updatedBy: user?.email || 'Unknown'
+      updatedBy: 'Anonymous'
     };
     setRates([...rates, newRate]);
   };
@@ -76,7 +74,7 @@ export default function Settings() {
         const rateToSave = {
           ...rate,
           updatedAt: new Date().toISOString(),
-          updatedBy: user?.email || 'Unknown'
+          updatedBy: 'Anonymous'
         };
         await setDoc(doc(db, 'rates', rate.id), rateToSave);
       }
@@ -89,19 +87,6 @@ export default function Settings() {
       setSaving(false);
     }
   };
-
-  if (!isAdmin) {
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
-        <div className="theme-card" style={{ maxWidth: '400px', textAlign: 'center', padding: '32px' }}>
-          <h2 style={{ fontSize: '20px', fontWeight: 600, marginBottom: '16px' }}>Access Denied</h2>
-          <p style={{ color: 'var(--text-muted)' }}>
-            You do not have permission to view this page.
-          </p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>

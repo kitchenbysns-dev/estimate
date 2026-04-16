@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useAuth } from '../lib/AuthContext';
-import { LogIn, Calculator, Loader2, ArrowLeft, Upload, File, Save } from 'lucide-react';
+import { Calculator, Loader2, ArrowLeft, Upload, File, Save } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
-import { signInWithGoogle, db } from '../lib/firebase';
+import { db } from '../lib/firebase';
 import { collection, getDocs } from 'firebase/firestore';
 import { generateMaterialCalculation } from '../lib/gemini';
 import { store } from '../lib/store';
@@ -12,7 +11,6 @@ import { Estimation, EstimationItem } from '../types';
 export default function MaterialCalculation() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user } = useAuth();
   
   const [area, setArea] = useState<number | ''>('');
   const [manualInput, setManualInput] = useState('');
@@ -66,15 +64,6 @@ export default function MaterialCalculation() {
   const isValidInput = (area !== '' && Number(area) > 0) || file !== null;
 
   const handleCalculate = async () => {
-    if (!user) {
-      try {
-        await signInWithGoogle();
-      } catch (error) {
-        console.error("Sign in failed", error);
-        return;
-      }
-    }
-
     setIsGenerating(true);
     try {
       let cementBags = 0;
