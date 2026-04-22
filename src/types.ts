@@ -29,6 +29,8 @@ export interface Estimation {
   totalEquipmentCost: number;
   totalCost: number;
   estimatedTimeDays: number;
+  totalArea?: number;
+  totalFloors?: number;
   createdAt: string;
   updatedAt: string;
 }

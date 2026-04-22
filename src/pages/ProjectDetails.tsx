@@ -79,7 +79,7 @@ export default function ProjectDetails() {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {estimations.map(est => (
-            <div key={est.id} className="theme-card" style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px' }}>
+            <div key={est.id} className="theme-card" style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', cursor: 'pointer' }} onClick={() => navigate(`/projects/${project.id}/estimations/${est.id}`)}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                 <div style={{ height: '48px', width: '48px', backgroundColor: 'var(--primary-light)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <FileText className="h-6 w-6" style={{ color: 'var(--primary)' }} />
@@ -87,9 +87,21 @@ export default function ProjectDetails() {
                 <div>
                   <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-main)' }}>{est.name}</h3>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>
-                    <span>{format(new Date(est.createdAt), 'MMM d, yyyy')}</span>
+                    <span>{est.createdAt ? format(new Date(est.createdAt), 'MMM d, yyyy') : 'Unknown Date'}</span>
                     <span>•</span>
                     <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>Rs. {est.totalCost.toLocaleString()}</span>
+                    {est.totalArea && (
+                      <>
+                        <span>•</span>
+                        <span>Area: {est.totalArea} sq.ft/m</span>
+                      </>
+                    )}
+                    {est.totalFloors && (
+                      <>
+                        <span>•</span>
+                        <span>Floors: {est.totalFloors}</span>
+                      </>
+                    )}
                     <span>•</span>
                     <span className={`theme-badge ${est.status === 'Approved' ? 'theme-badge-info' : ''}`} style={{ backgroundColor: est.status === 'Approved' ? 'var(--success)' : 'var(--border)', color: est.status === 'Approved' ? 'white' : 'var(--text-muted)' }}>
                       {est.status}
@@ -97,7 +109,7 @@ export default function ProjectDetails() {
                   </div>
                 </div>
               </div>
-              <div className="actions">
+              <div className="actions" onClick={(e) => e.stopPropagation()}>
                 <button className="btn btn-outline" onClick={() => handleExport(est)}>
                   <Download className="mr-2 h-4 w-4" /> Export PDF
                 </button>

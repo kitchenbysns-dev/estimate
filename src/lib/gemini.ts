@@ -8,7 +8,8 @@ export async function generateEstimation(
   fileBase64: string | null,
   mimeType: string | null,
   manualInput: string,
-  templateCategories: string[]
+  templateCategories: string[],
+  unitSystem: string = 'Imperial (Sq.ft)'
 ): Promise<{ items: EstimationItem[], estimatedTimeDays: number }> {
   
   const parts: any[] = [];
@@ -22,18 +23,25 @@ export async function generateEstimation(
     });
   }
   
+  const targetAreaUnit = unitSystem === 'Imperial (Sq.ft)' ? 'sq. ft' : 'sq. m';
+  
   parts.push({
     text: `Generate a detailed building estimation based on the provided blueprints (if any) and the following manual input: "${manualInput}".
     
     Categorize the items into the following categories: ${templateCategories.join(', ')}.
     For each item, provide a realistic unit cost in Nepalese Rupees (NPR) and quantity based on standard construction rates in Nepal.
-    Also estimate the total time in days required for the project.`
+    Also estimate the total time in days required for the project.
+
+    CRITICAL INSTRUCTION FOR UNIFORMITY: You must be highly consistent and deterministic. For a given total area or identical requirements, always produce the exact same standard items, categories, and quantities.
+    CRITICAL MEASUREMENT SYSTEM INSTRUCTION: Make sure your dimensional units match the selected system: ${unitSystem}. 
+    For items like Windows, Glass, Flooring, and Painting, the unit MUST be in ${targetAreaUnit}. Do not use "Pieces", "Nos", or "Numbers" for Windows; calculate the rough estimated area of those windows in ${targetAreaUnit} and give a rate per ${targetAreaUnit}.`
   });
 
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
     contents: { parts },
     config: {
+      temperature: 0.1,
       responseMimeType: 'application/json',
       responseSchema: {
         type: Type.OBJECT,
@@ -83,7 +91,8 @@ export async function generateMaterialCalculation(
   fileBase64: string | null,
   mimeType: string | null,
   manualInput: string,
-  area: number | ''
+  area: number | '',
+  unitSystem: string = 'Imperial (Sq.ft)'
 ): Promise<{ cement: number, sand: number, aggregate: number, steel: number, bricks: number, paints: number, tiles: number }> {
   const parts: any[] = [];
   
@@ -96,9 +105,11 @@ export async function generateMaterialCalculation(
     });
   }
   
+  const targetAreaUnit = unitSystem === 'Imperial (Sq.ft)' ? 'sq. ft' : 'sq. m';
+  
   parts.push({
     text: `Analyze the provided blueprint (if any) and manual input: "${manualInput}".
-    The total area is ${area || 'unknown'} sq. ft.
+    The total area is ${area || 'unknown'} ${targetAreaUnit}.
     Calculate the required quantities of the following materials for construction:
     - Cement in Bags (50kg)
     - Sand in Cubic Feet (Cu. Ft)
@@ -106,15 +117,16 @@ export async function generateMaterialCalculation(
     - Steel in Kilograms (Kg)
     - Bricks in Pieces
     - Paints in Liters
-    - Tiles in Sq. Ft
+    - Tiles in ${targetAreaUnit}
     
-    Provide realistic estimates based on standard construction practices.`
+    Provide precise, deterministic, and highly consistent estimates based on standard construction practices.`
   });
 
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
     contents: { parts },
     config: {
+      temperature: 0.1,
       responseMimeType: 'application/json',
       responseSchema: {
         type: Type.OBJECT,
@@ -125,7 +137,7 @@ export async function generateMaterialCalculation(
           steel: { type: Type.NUMBER, description: 'Quantity of Steel in Kg' },
           bricks: { type: Type.NUMBER, description: 'Quantity of Bricks in Pieces' },
           paints: { type: Type.NUMBER, description: 'Quantity of Paints in Liters' },
-          tiles: { type: Type.NUMBER, description: 'Quantity of Tiles in Sq. Ft' }
+          tiles: { type: Type.NUMBER, description: `Quantity of Tiles in ${targetAreaUnit}` }
         },
         required: ['cement', 'sand', 'aggregate', 'steel', 'bricks', 'paints', 'tiles']
       }

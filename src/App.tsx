@@ -8,6 +8,7 @@ import { Layout } from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import ProjectDetails from './pages/ProjectDetails';
 import NewEstimation from './pages/NewEstimation';
+import ViewEstimation from './pages/ViewEstimation';
 import Templates from './pages/Templates';
 import Settings from './pages/Settings';
 import MaterialCalculation from './pages/MaterialCalculation';
@@ -20,6 +21,7 @@ export default function App() {
           <Route index element={<Dashboard />} />
           <Route path="projects/:id" element={<ProjectDetails />} />
           <Route path="projects/:id/new-estimation" element={<NewEstimation />} />
+          <Route path="projects/:id/estimations/:estId" element={<ViewEstimation />} />
           <Route path="projects/:id/material-calculation" element={<MaterialCalculation />} />
           <Route path="templates" element={<Templates />} />
           <Route path="settings" element={<Settings />} />

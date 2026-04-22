@@ -8,8 +8,14 @@ const STORAGE_KEYS = {
 
 export const store = {
   getProjects: (): Project[] => {
-    const data = localStorage.getItem(STORAGE_KEYS.PROJECTS);
-    return data ? JSON.parse(data) : [];
+    try {
+      const data = localStorage.getItem(STORAGE_KEYS.PROJECTS);
+      if (!data || data === 'undefined') return [];
+      return JSON.parse(data);
+    } catch (e) {
+      console.warn('Failed to parse projects from localStorage', e);
+      return [];
+    }
   },
   saveProject: (project: Project) => {
     const projects = store.getProjects();
@@ -27,12 +33,18 @@ export const store = {
   },
 
   getEstimations: (projectId?: string): Estimation[] => {
-    const data = localStorage.getItem(STORAGE_KEYS.ESTIMATIONS);
-    const estimations: Estimation[] = data ? JSON.parse(data) : [];
-    if (projectId) {
-      return estimations.filter(e => e.projectId === projectId);
+    try {
+      const data = localStorage.getItem(STORAGE_KEYS.ESTIMATIONS);
+      if (!data || data === 'undefined') return [];
+      const estimations: Estimation[] = JSON.parse(data);
+      if (projectId) {
+        return estimations.filter(e => e.projectId === projectId);
+      }
+      return estimations;
+    } catch (e) {
+      console.warn('Failed to parse estimations from localStorage', e);
+      return [];
     }
-    return estimations;
   },
   getEstimation: (id: string): Estimation | undefined => {
     return store.getEstimations().find(e => e.id === id);
@@ -53,20 +65,24 @@ export const store = {
   },
 
   getTemplates: (): Template[] => {
-    const data = localStorage.getItem(STORAGE_KEYS.TEMPLATES);
-    if (!data) {
-      // Default template
-      const defaultTemplate: Template = {
-        id: 'default-1',
-        name: 'Standard Residential Build',
-        description: 'Basic template for residential construction',
-        categories: ['Foundation', 'Framing', 'Plumbing', 'Electrical', 'Roofing', 'Finishes'],
-        defaultItems: []
-      };
-      localStorage.setItem(STORAGE_KEYS.TEMPLATES, JSON.stringify([defaultTemplate]));
-      return [defaultTemplate];
+    try {
+      const data = localStorage.getItem(STORAGE_KEYS.TEMPLATES);
+      if (!data || data === 'undefined') {
+        const defaultTemplate: Template = {
+          id: 'default-1',
+          name: 'Standard Residential Build',
+          description: 'Basic template for residential construction',
+          categories: ['Foundation', 'Framing', 'Plumbing', 'Electrical', 'Roofing', 'Finishes'],
+          defaultItems: []
+        };
+        localStorage.setItem(STORAGE_KEYS.TEMPLATES, JSON.stringify([defaultTemplate]));
+        return [defaultTemplate];
+      }
+      return JSON.parse(data);
+    } catch (e) {
+      console.warn('Failed to parse templates from localStorage', e);
+      return [];
     }
-    return JSON.parse(data);
   },
   saveTemplate: (template: Template) => {
     const templates = store.getTemplates();

@@ -13,6 +13,8 @@ export default function MaterialCalculation() {
   const navigate = useNavigate();
   
   const [area, setArea] = useState<number | ''>('');
+  const [measurementSystem, setMeasurementSystem] = useState<'Imperial (Sq.ft)' | 'Metric (Sq.m)'>('Imperial (Sq.ft)');
+  const [drawingMode, setDrawingMode] = useState<'' | 'With Drawing' | 'Without Drawing'>('');
   const [manualInput, setManualInput] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [fileBase64, setFileBase64] = useState<string | null>(null);
@@ -61,7 +63,11 @@ export default function MaterialCalculation() {
     }
   };
 
-  const isValidInput = (area !== '' && Number(area) > 0) || file !== null;
+  const isValidInput = 
+    drawingMode !== '' && (
+      (drawingMode === 'With Drawing' && file !== null) || 
+      (drawingMode === 'Without Drawing' && ((area !== '' && Number(area) > 0) || manualInput.trim() !== ''))
+    );
 
   const handleCalculate = async () => {
     setIsGenerating(true);
@@ -76,7 +82,7 @@ export default function MaterialCalculation() {
 
       if (fileBase64 || manualInput) {
         // Use AI if file or manual input is provided
-        const aiResult = await generateMaterialCalculation(fileBase64, mimeType, manualInput, area);
+        const aiResult = await generateMaterialCalculation(fileBase64, mimeType, manualInput, area, measurementSystem);
         cementBags = aiResult.cement;
         sandCuFt = aiResult.sand;
         aggregateCuFt = aiResult.aggregate;
@@ -125,6 +131,8 @@ export default function MaterialCalculation() {
   const handleSave = () => {
     if (!id || !calculationResult) return;
 
+    const targetAreaUnit = measurementSystem === 'Imperial (Sq.ft)' ? 'sq.ft' : 'sq.m';
+
     const materials = [
       { key: 'cement', desc: 'Cement', unit: 'Bags (50kg)' },
       { key: 'sand', desc: 'Sand', unit: 'Cu. Ft' },
@@ -132,7 +140,7 @@ export default function MaterialCalculation() {
       { key: 'steel', desc: 'Steel', unit: 'Kg' },
       { key: 'bricks', desc: 'Bricks', unit: 'Pieces' },
       { key: 'paints', desc: 'Paints', unit: 'Liters' },
-      { key: 'tiles', desc: 'Tiles', unit: 'Sq. Ft' },
+      { key: 'tiles', desc: 'Tiles', unit: targetAreaUnit },
     ];
 
     const items: EstimationItem[] = materials.map(mat => {
@@ -162,6 +170,7 @@ export default function MaterialCalculation() {
       totalEquipmentCost: 0,
       totalCost,
       estimatedTimeDays: 0,
+      totalArea: area === '' ? undefined : area,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -197,50 +206,87 @@ export default function MaterialCalculation() {
           </div>
           
           <div className="manual-input">
-            <label>Total Area (sq. ft)</label>
-            <input 
-              type="number" 
-              value={area} 
-              onChange={e => setArea(e.target.value === '' ? '' : Number(e.target.value))} 
-              min="1"
-              placeholder="Enter area in sq. ft"
-            />
-          </div>
-
-          <div className="upload-zone" style={{ marginTop: '16px' }}>
-            <input 
-              type="file" 
-              accept=".pdf,image/*" 
-              onChange={handleFileChange} 
-              className="hidden" 
-              id="file-upload-mat" 
-              style={{ display: 'none' }}
-            />
-            <label htmlFor="file-upload-mat" style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              {file ? (
-                <>
-                  <File className="h-10 w-10 mb-2" style={{ color: 'var(--primary)' }} />
-                  <p>📄 {file.name}</p>
-                  <div style={{ fontSize: '10px', marginTop: '4px', color: 'var(--text-muted)' }}>Ready for processing</div>
-                </>
-              ) : (
-                <>
-                  <Upload className="h-10 w-10 mb-2" style={{ color: 'var(--secondary)' }} />
-                  <p>Click to select a PDF or Image blueprint</p>
-                </>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+              <div>
+                <label>Input Method</label>
+                <select value={drawingMode} onChange={e => setDrawingMode(e.target.value as any)}>
+                  <option value="" disabled>Select Input Method...</option>
+                  <option value="With Drawing">With Drawing</option>
+                  <option value="Without Drawing">Without Drawing</option>
+                </select>
+              </div>
+              {drawingMode === 'With Drawing' && (
+                <div>
+                  <label>Measurement System</label>
+                  <select value={measurementSystem} onChange={e => setMeasurementSystem(e.target.value as any)}>
+                    <option value="Imperial (Sq.ft)">Imperial (Sq.ft)</option>
+                    <option value="Metric (Sq.m)">Metric (Sq.m)</option>
+                  </select>
+                </div>
               )}
-            </label>
+            </div>
+            
+            {drawingMode === 'Without Drawing' && (
+               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+                  <div>
+                    <label>Total Area</label>
+                    <input 
+                      type="number" 
+                      value={area} 
+                      onChange={e => setArea(e.target.value === '' ? '' : Number(e.target.value))} 
+                      min="1"
+                      placeholder={measurementSystem === 'Imperial (Sq.ft)' ? 'e.g. 2000' : 'e.g. 185'}
+                    />
+                  </div>
+                  <div>
+                    <label>Measurement System</label>
+                    <select value={measurementSystem} onChange={e => setMeasurementSystem(e.target.value as any)}>
+                      <option value="Imperial (Sq.ft)">Imperial (Sq.ft)</option>
+                      <option value="Metric (Sq.m)">Metric (Sq.m)</option>
+                    </select>
+                  </div>
+               </div>
+            )}
           </div>
 
-          <div className="manual-input" style={{ marginTop: '16px' }}>
-            <label>Manual Input / Requirements</label>
-            <textarea 
-              placeholder="e.g. 2000 sq ft house, hardwood floors, standard fixtures..." 
-              style={{ height: '100px', resize: 'vertical' }}
-              value={manualInput}
-              onChange={e => setManualInput(e.target.value)}
-            />
-          </div>
+          {drawingMode === 'With Drawing' && (
+            <div className="upload-zone" style={{ marginTop: '16px' }}>
+              <input 
+                type="file" 
+                accept=".pdf,image/*" 
+                onChange={handleFileChange} 
+                className="hidden" 
+                id="file-upload-mat" 
+                style={{ display: 'none' }}
+              />
+              <label htmlFor="file-upload-mat" style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                {file ? (
+                  <>
+                    <File className="h-10 w-10 mb-2" style={{ color: 'var(--primary)' }} />
+                    <p>📄 {file.name}</p>
+                    <div style={{ fontSize: '10px', marginTop: '4px', color: 'var(--text-muted)' }}>Ready for processing</div>
+                  </>
+                ) : (
+                  <>
+                    <Upload className="h-10 w-10 mb-2" style={{ color: 'var(--secondary)' }} />
+                    <p>Click to select a PDF or Image blueprint</p>
+                  </>
+                )}
+              </label>
+            </div>
+          )}
+          
+          {drawingMode === 'Without Drawing' && (
+            <div className="manual-input" style={{ marginTop: '16px' }}>
+              <label>Manual Input / Requirements</label>
+              <textarea 
+                placeholder="e.g. 2000 sq ft house, hardwood floors, standard fixtures..." 
+                style={{ height: '100px', resize: 'vertical' }}
+                value={manualInput}
+                onChange={e => setManualInput(e.target.value)}
+              />
+            </div>
+          )}
 
           <button className="btn btn-primary" style={{ width: '100%', marginTop: '16px' }} onClick={handleCalculate} disabled={loadingRates || isGenerating || !isValidInput}>
             {isGenerating || loadingRates ? (
@@ -250,7 +296,7 @@ export default function MaterialCalculation() {
             )}
           </button>
           <div style={{ marginTop: '16px', fontSize: '11px', lineHeight: 1.4, color: 'var(--text-muted)' }}>
-            * Provide a valid area OR upload a blueprint to calculate materials.
+            * Select an input method to provide parameters and calculate materials.
           </div>
         </div>
 
@@ -263,52 +309,52 @@ export default function MaterialCalculation() {
               <thead>
                 <tr>
                   <th>Material</th>
-                  <th style={{ textAlign: 'right' }}>Quantity</th>
                   <th>Unit</th>
+                  <th style={{ textAlign: 'right' }}>Quantity</th>
                   <th style={{ textAlign: 'right' }}>Total Cost (Rs.)</th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
                   <td style={{ fontWeight: 600 }}>Cement</td>
-                  <td style={{ textAlign: 'right' }}>{calculationResult.cement.qty}</td>
                   <td>Bags (50kg)</td>
+                  <td style={{ textAlign: 'right' }}>{calculationResult.cement.qty}</td>
                   <td style={{ textAlign: 'right' }}>Rs. {calculationResult.cement.cost.toLocaleString()}</td>
                 </tr>
                 <tr>
                   <td style={{ fontWeight: 600 }}>Sand</td>
-                  <td style={{ textAlign: 'right' }}>{calculationResult.sand.qty}</td>
                   <td>Cu. Ft</td>
+                  <td style={{ textAlign: 'right' }}>{calculationResult.sand.qty}</td>
                   <td style={{ textAlign: 'right' }}>Rs. {calculationResult.sand.cost.toLocaleString()}</td>
                 </tr>
                 <tr>
                   <td style={{ fontWeight: 600 }}>Aggregate</td>
-                  <td style={{ textAlign: 'right' }}>{calculationResult.aggregate.qty}</td>
                   <td>Cu. Ft</td>
+                  <td style={{ textAlign: 'right' }}>{calculationResult.aggregate.qty}</td>
                   <td style={{ textAlign: 'right' }}>Rs. {calculationResult.aggregate.cost.toLocaleString()}</td>
                 </tr>
                 <tr>
                   <td style={{ fontWeight: 600 }}>Steel</td>
-                  <td style={{ textAlign: 'right' }}>{calculationResult.steel.qty}</td>
                   <td>Kg</td>
+                  <td style={{ textAlign: 'right' }}>{calculationResult.steel.qty}</td>
                   <td style={{ textAlign: 'right' }}>Rs. {calculationResult.steel.cost.toLocaleString()}</td>
                 </tr>
                 <tr>
                   <td style={{ fontWeight: 600 }}>Bricks</td>
-                  <td style={{ textAlign: 'right' }}>{calculationResult.bricks.qty}</td>
                   <td>Pieces</td>
+                  <td style={{ textAlign: 'right' }}>{calculationResult.bricks.qty}</td>
                   <td style={{ textAlign: 'right' }}>Rs. {calculationResult.bricks.cost.toLocaleString()}</td>
                 </tr>
                 <tr>
                   <td style={{ fontWeight: 600 }}>Paints</td>
-                  <td style={{ textAlign: 'right' }}>{calculationResult.paints.qty}</td>
                   <td>Liters</td>
+                  <td style={{ textAlign: 'right' }}>{calculationResult.paints.qty}</td>
                   <td style={{ textAlign: 'right' }}>Rs. {calculationResult.paints.cost.toLocaleString()}</td>
                 </tr>
                 <tr>
                   <td style={{ fontWeight: 600 }}>Tiles</td>
+                  <td>{measurementSystem === 'Imperial (Sq.ft)' ? 'sq.ft' : 'sq.m'}</td>
                   <td style={{ textAlign: 'right' }}>{calculationResult.tiles.qty}</td>
-                  <td>Sq. Ft</td>
                   <td style={{ textAlign: 'right' }}>Rs. {calculationResult.tiles.cost.toLocaleString()}</td>
                 </tr>
               </tbody>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { Plus, Folder, MapPin, Calendar } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Plus, Folder, MapPin, Calendar, Trash2 } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { format } from 'date-fns';
 
@@ -14,6 +14,7 @@ export default function Dashboard() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [newProject, setNewProject] = useState({ name: '', clientName: '', location: '' });
+  const navigate = useNavigate();
 
   useEffect(() => {
     setProjects(store.getProjects());
@@ -35,6 +36,15 @@ export default function Dashboard() {
     setProjects(store.getProjects());
     setIsDialogOpen(false);
     setNewProject({ name: '', clientName: '', location: '' });
+  };
+
+  const handleDeleteProject = (e: React.MouseEvent, id: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (confirm('Are you sure you want to delete this project and all its estimations?')) {
+      store.deleteProject(id);
+      setProjects(store.getProjects());
+    }
   };
 
   return (
@@ -104,26 +114,37 @@ export default function Dashboard() {
       ) : (
         <div className="summary-cards">
           {projects.map(project => (
-            <Link key={project.id} to={`/projects/${project.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-              <div className="theme-card" style={{ height: '100%', cursor: 'pointer' }}>
-                <div className="theme-card-header" style={{ marginBottom: '8px' }}>
-                  {project.name}
+            <div 
+              key={project.id} 
+              className="theme-card" 
+              style={{ height: '100%', cursor: 'pointer' }}
+              onClick={() => navigate(`/projects/${project.id}`)}
+            >
+              <div className="theme-card-header" style={{ marginBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                {project.name}
+                <button 
+                  className="btn btn-outline" 
+                  style={{ padding: '4px', color: '#ef4444', borderColor: 'transparent' }} 
+                  onClick={(e) => handleDeleteProject(e, project.id)}
+                  title="Delete Project"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+              <div style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '16px' }}>
+                {project.clientName || 'No client specified'}
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '13px', color: 'var(--text-muted)' }}>
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  <MapPin className="mr-2 h-4 w-4" />
+                  {project.location || 'No location'}
                 </div>
-                <div style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '16px' }}>
-                  {project.clientName || 'No client specified'}
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '13px', color: 'var(--text-muted)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center' }}>
-                    <MapPin className="mr-2 h-4 w-4" />
-                    {project.location || 'No location'}
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center' }}>
-                    <Calendar className="mr-2 h-4 w-4" />
-                    Updated {format(new Date(project.updatedAt), 'MMM d, yyyy')}
-                  </div>
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  <Calendar className="mr-2 h-4 w-4" />
+                  Updated {project.updatedAt ? format(new Date(project.updatedAt), 'MMM d, yyyy') : 'Unknown'}
                 </div>
               </div>
-            </Link>
+            </div>
           ))}
         </div>
       )}

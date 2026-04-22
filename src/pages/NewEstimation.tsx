@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Upload, File, Loader2, Save } from 'lucide-react';
+import { ArrowLeft, Upload, File, Loader2, Save, Trash2 } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 
 import { store } from '../lib/store';
@@ -18,6 +18,12 @@ export default function NewEstimation() {
   const [mimeType, setMimeType] = useState<string | null>(null);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<string>('');
+  
+  const [totalArea, setTotalArea] = useState<number | ''>('');
+  const [totalFloors, setTotalFloors] = useState<number | ''>('');
+  const [measurementSystem, setMeasurementSystem] = useState<'Imperial (Sq.ft)' | 'Metric (Sq.m)'>('Imperial (Sq.ft)');
+  
+  const [drawingMode, setDrawingMode] = useState<'' | 'With Drawing' | 'Without Drawing'>('');
   
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedItems, setGeneratedItems] = useState<EstimationItem[] | null>(null);
@@ -43,6 +49,13 @@ export default function NewEstimation() {
     }
   };
 
+  const isGenerateDisabled = 
+    isGenerating || 
+    drawingMode === '' || 
+    !name.trim() || 
+    (drawingMode === 'With Drawing' && !fileBase64) || 
+    (drawingMode === 'Without Drawing' && (!totalArea || !totalFloors || !manualInput.trim()));
+
   const handleGenerate = async () => {
     if (!id) return;
 
@@ -51,7 +64,7 @@ export default function NewEstimation() {
       const template = templates.find(t => t.id === selectedTemplate);
       const categories = template ? template.categories : ['General'];
       
-      const result = await generateEstimation(fileBase64, mimeType, manualInput, categories);
+      const result = await generateEstimation(fileBase64, mimeType, manualInput, categories, measurementSystem);
       setGeneratedItems(result.items);
       setEstimatedTime(result.estimatedTimeDays);
     } catch (error) {
@@ -59,6 +72,12 @@ export default function NewEstimation() {
       alert('Failed to generate estimation. Check console for details.');
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const handleDeleteItem = (itemId: string) => {
+    if (generatedItems) {
+      setGeneratedItems(generatedItems.filter(item => item.id !== itemId));
     }
   };
 
@@ -81,6 +100,8 @@ export default function NewEstimation() {
       totalEquipmentCost: totalEquipment,
       totalCost,
       estimatedTimeDays: estimatedTime,
+      totalArea: totalArea === '' ? undefined : totalArea,
+      totalFloors: totalFloors === '' ? undefined : totalFloors,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -121,50 +142,112 @@ export default function NewEstimation() {
               <label>Estimation Name</label>
               <input type="text" value={name} onChange={e => setName(e.target.value)} />
 
-              <label>Template</label>
-              <select value={selectedTemplate} onChange={e => setSelectedTemplate(e.target.value)}>
-                {templates.map(t => (
-                  <option key={t.id} value={t.id}>{t.name}</option>
-                ))}
-              </select>
+              <div style={{ marginTop: '16px', marginBottom: '16px' }}>
+                <label>Input Method</label>
+                <select value={drawingMode} onChange={e => setDrawingMode(e.target.value as any)}>
+                  <option value="" disabled>Select Input Method...</option>
+                  <option value="With Drawing">With Drawing</option>
+                  <option value="Without Drawing">Without Drawing</option>
+                </select>
+              </div>
+
+              {drawingMode === 'With Drawing' && (
+                <>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+                    <div>
+                      <label>Measurement System</label>
+                      <select value={measurementSystem} onChange={e => setMeasurementSystem(e.target.value as any)}>
+                        <option value="Imperial (Sq.ft)">Imperial (Sq.ft)</option>
+                        <option value="Metric (Sq.m)">Metric (Sq.m)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label>Template</label>
+                      <select value={selectedTemplate} onChange={e => setSelectedTemplate(e.target.value)}>
+                        {templates.map(t => (
+                          <option key={t.id} value={t.id}>{t.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="upload-zone">
+                    <input 
+                      type="file" 
+                      accept=".pdf,image/*" 
+                      onChange={handleFileChange} 
+                      className="hidden" 
+                      id="file-upload" 
+                      style={{ display: 'none' }}
+                    />
+                    <label htmlFor="file-upload" style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                      {file ? (
+                        <>
+                          <File className="h-10 w-10 mb-2" style={{ color: 'var(--primary)' }} />
+                          <p>📄 {file.name}</p>
+                          <div style={{ fontSize: '10px', marginTop: '4px', color: 'var(--text-muted)' }}>Ready for processing</div>
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="h-10 w-10 mb-2" style={{ color: 'var(--secondary)' }} />
+                          <p>Click to select a PDF or Image blueprint</p>
+                        </>
+                      )}
+                    </label>
+                  </div>
+                </>
+              )}
+
+              {drawingMode === 'Without Drawing' && (
+                <>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+                    <div>
+                      <label>Total Area</label>
+                      <input type="number" min="0" value={totalArea} onChange={e => setTotalArea(e.target.value === '' ? '' : Number(e.target.value))} placeholder={measurementSystem === 'Imperial (Sq.ft)' ? 'e.g. 2000' : 'e.g. 185'} />
+                    </div>
+                    <div>
+                      <label>Total Floors</label>
+                      <input type="number" min="1" value={totalFloors} onChange={e => setTotalFloors(e.target.value === '' ? '' : Number(e.target.value))} placeholder="e.g. 2" />
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+                    <div>
+                      <label>Measurement System</label>
+                      <select value={measurementSystem} onChange={e => setMeasurementSystem(e.target.value as any)}>
+                        <option value="Imperial (Sq.ft)">Imperial (Sq.ft)</option>
+                        <option value="Metric (Sq.m)">Metric (Sq.m)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label>Template</label>
+                      <select value={selectedTemplate} onChange={e => setSelectedTemplate(e.target.value)}>
+                        {templates.map(t => (
+                          <option key={t.id} value={t.id}>{t.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="manual-input" style={{ marginBottom: '16px' }}>
+                    <label>Manual Input / Requirements</label>
+                    <textarea 
+                      placeholder="e.g. 2000 sq ft house, hardwood floors, standard fixtures..." 
+                      style={{ height: '120px', resize: 'vertical' }}
+                      value={manualInput}
+                      onChange={e => setManualInput(e.target.value)}
+                    />
+                  </div>
+                </>
+              )}
             </div>
 
-            <div className="upload-zone">
-              <input 
-                type="file" 
-                accept=".pdf,image/*" 
-                onChange={handleFileChange} 
-                className="hidden" 
-                id="file-upload" 
-                style={{ display: 'none' }}
-              />
-              <label htmlFor="file-upload" style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                {file ? (
-                  <>
-                    <File className="h-10 w-10 mb-2" style={{ color: 'var(--primary)' }} />
-                    <p>📄 {file.name}</p>
-                    <div style={{ fontSize: '10px', marginTop: '4px', color: 'var(--text-muted)' }}>Ready for processing</div>
-                  </>
-                ) : (
-                  <>
-                    <Upload className="h-10 w-10 mb-2" style={{ color: 'var(--secondary)' }} />
-                    <p>Click to select a PDF or Image blueprint</p>
-                  </>
-                )}
-              </label>
-            </div>
-
-            <div className="manual-input">
-              <label>Manual Input / Requirements</label>
-              <textarea 
-                placeholder="e.g. 2000 sq ft house, hardwood floors, standard fixtures..." 
-                style={{ height: '120px', resize: 'vertical' }}
-                value={manualInput}
-                onChange={e => setManualInput(e.target.value)}
-              />
-            </div>
-
-            <button className="btn btn-primary" style={{ width: '100%', marginTop: '16px' }} onClick={handleGenerate} disabled={isGenerating || (!fileBase64 && !manualInput)}>
+            <button 
+              className="btn btn-primary" 
+              style={{ width: '100%', marginTop: '16px' }} 
+              onClick={handleGenerate} 
+              disabled={isGenerateDisabled}
+            >
               {isGenerating ? (
                 <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating with AI...</>
               ) : (
@@ -172,7 +255,7 @@ export default function NewEstimation() {
               )}
             </button>
             <div style={{ marginTop: '16px', fontSize: '11px', lineHeight: 1.4, color: 'var(--text-muted)' }}>
-              * AI will analyze the PDF and manual input to generate a detailed cost breakdown.
+              * AI will analyze the {drawingMode === 'With Drawing' ? 'PDF/Image' : 'manual input'} to generate a detailed cost breakdown.
             </div>
           </div>
         </div>
@@ -187,10 +270,18 @@ export default function NewEstimation() {
               <div className="stat-label">Project Timeline</div>
               <div className="stat-value">{estimatedTime} Days</div>
             </div>
-            <div className="stat-card">
-              <div className="stat-label">Items Count</div>
-              <div className="stat-value">{generatedItems.length} Items</div>
-            </div>
+            {totalArea !== '' && (
+              <div className="stat-card">
+                <div className="stat-label">Total Area</div>
+                <div className="stat-value">{totalArea} {measurementSystem === 'Imperial (Sq.ft)' ? 'sq.ft' : 'sq.m'}</div>
+              </div>
+            )}
+            {totalFloors !== '' && (
+              <div className="stat-card">
+                <div className="stat-label">Total Floors</div>
+                <div className="stat-value">{totalFloors}</div>
+              </div>
+            )}
           </div>
 
           <div className="theme-card">
@@ -200,10 +291,9 @@ export default function NewEstimation() {
                 <tr>
                   <th>Category</th>
                   <th>Description</th>
-                  <th>Type</th>
-                  <th style={{ textAlign: 'right' }}>Qty</th>
                   <th>Unit</th>
-                  <th style={{ textAlign: 'right' }}>Unit Cost</th>
+                  <th style={{ textAlign: 'right' }}>Rate (Rs.)</th>
+                  <th style={{ textAlign: 'right' }}>Qty</th>
                   <th style={{ textAlign: 'right' }}>Line Total</th>
                 </tr>
               </thead>
@@ -212,10 +302,9 @@ export default function NewEstimation() {
                   <tr key={item.id}>
                     <td style={{ fontWeight: 600 }}>{item.category}</td>
                     <td>{item.description}</td>
-                    <td><span className="theme-badge" style={{ backgroundColor: 'var(--border)', color: 'var(--text-muted)' }}>{item.type}</span></td>
-                    <td style={{ textAlign: 'right' }}>{item.quantity}</td>
                     <td>{item.unit}</td>
-                    <td style={{ textAlign: 'right' }}>Rs. {item.unitCost.toLocaleString()}</td>
+                    <td style={{ textAlign: 'right' }}>{item.unitCost.toLocaleString()}</td>
+                    <td style={{ textAlign: 'right' }}>{item.quantity}</td>
                     <td style={{ textAlign: 'right' }} className="cost-positive">Rs. {item.totalCost.toLocaleString()}</td>
                   </tr>
                 ))}
