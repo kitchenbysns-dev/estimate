@@ -68,15 +68,23 @@ export const store = {
     try {
       const data = localStorage.getItem(STORAGE_KEYS.TEMPLATES);
       if (!data || data === 'undefined') {
-        const defaultTemplate: Template = {
+        const defaultTemplate1: Template = {
           id: 'default-1',
           name: 'Standard Residential Build',
           description: 'Basic template for residential construction',
           categories: ['Foundation', 'Framing', 'Plumbing', 'Electrical', 'Roofing', 'Finishes'],
           defaultItems: []
         };
-        localStorage.setItem(STORAGE_KEYS.TEMPLATES, JSON.stringify([defaultTemplate]));
-        return [defaultTemplate];
+        const defaultTemplate2: Template = {
+          id: 'default-2',
+          name: 'Framed Structure Building',
+          description: 'Template for framed structure building estimation',
+          categories: ['Excavation', 'Concrete Work', 'Formwork', 'Reinforcement', 'Masonry', 'Plastering', 'Painting', 'Flooring'],
+          defaultItems: []
+        };
+        const defaults = [defaultTemplate1, defaultTemplate2];
+        localStorage.setItem(STORAGE_KEYS.TEMPLATES, JSON.stringify(defaults));
+        return defaults;
       }
       return JSON.parse(data);
     } catch (e) {
