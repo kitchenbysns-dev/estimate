@@ -67,9 +67,13 @@ export default function NewEstimation() {
       const result = await generateEstimation(fileBase64, mimeType, manualInput, categories, measurementSystem);
       setGeneratedItems(result.items);
       setEstimatedTime(result.estimatedTimeDays);
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      alert('Failed to generate estimation. Check console for details.');
+      if (error.message === 'MISSING_API_KEY') {
+        alert('Missing Gemini API Key. Please add VITE_GEMINI_API_KEY to your environment variables in Vercel/Netlify.');
+      } else {
+        alert(`Failed to generate estimation: ${error.message || 'Check console for details.'}`);
+      }
     } finally {
       setIsGenerating(false);
     }

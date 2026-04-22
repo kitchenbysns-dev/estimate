@@ -2,7 +2,21 @@ import { GoogleGenAI, Type } from '@google/genai';
 import { EstimationItem } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+function getAiClient() {
+  // Try to use Vite's import.meta.env first (for external deployments like Vercel/Netlify),
+  // then fallback to process.env (for AI Studio's internal define config).
+  const apiKey = 
+    // @ts-ignore
+    (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_GEMINI_API_KEY) || 
+    (typeof process !== 'undefined' && process.env ? process.env.GEMINI_API_KEY : '') || 
+    '';
+    
+  if (!apiKey) {
+    throw new Error('MISSING_API_KEY');
+  }
+  
+  return new GoogleGenAI({ apiKey });
+}
 
 export async function generateEstimation(
   fileBase64: string | null,
@@ -37,6 +51,7 @@ export async function generateEstimation(
     For items like Windows, Glass, Flooring, and Painting, the unit MUST be in ${targetAreaUnit}. Do not use "Pieces", "Nos", or "Numbers" for Windows; calculate the rough estimated area of those windows in ${targetAreaUnit} and give a rate per ${targetAreaUnit}.`
   });
 
+  const ai = getAiClient();
   const response = await ai.models.generateContent({
     model: 'gemini-2.0-flash',
     contents: { parts },
@@ -122,6 +137,7 @@ export async function generateMaterialCalculation(
     Provide precise, deterministic, and highly consistent estimates based on standard construction practices.`
   });
 
+  const ai = getAiClient();
   const response = await ai.models.generateContent({
     model: 'gemini-2.0-flash',
     contents: { parts },

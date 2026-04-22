@@ -120,9 +120,13 @@ export default function MaterialCalculation() {
         tiles: { qty: tilesSqFt, cost: tilesSqFt * tilesPrice },
         totalCost: (cementBags * cementPrice) + (sandCuFt * sandPrice) + (aggregateCuFt * aggregatePrice) + (steelKg * steelPrice) + (bricksPcs * bricksPrice) + (paintsLtr * paintsPrice) + (tilesSqFt * tilesPrice)
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      alert('Failed to calculate materials. Check console for details.');
+      if (error.message === 'MISSING_API_KEY') {
+        alert('Missing Gemini API Key. Please add VITE_GEMINI_API_KEY to your environment variables in Vercel/Netlify.');
+      } else {
+        alert(`Failed to calculate materials: ${error.message || 'Check console for details.'}`);
+      }
     } finally {
       setIsGenerating(false);
     }
