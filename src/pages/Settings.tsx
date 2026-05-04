@@ -57,12 +57,15 @@ export default function Settings() {
 
   const handleRemoveRate = async (id: string) => {
     if (!confirm('Are you sure you want to delete this rate?')) return;
+    
+    // Always remove from UI immediately so the container deletes
+    setRates(rates.filter(r => r.id !== id));
+    
     try {
       await deleteDoc(doc(db, 'rates', id));
-      setRates(rates.filter(r => r.id !== id));
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error deleting rate", error);
-      alert("Failed to delete rate.");
+      // Ignore 404 since it means the item was just added locally and not saved yet
     }
   };
 

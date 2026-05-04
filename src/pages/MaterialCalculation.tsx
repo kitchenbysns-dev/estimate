@@ -124,6 +124,8 @@ export default function MaterialCalculation() {
       console.error(error);
       if (error.message === 'MISSING_API_KEY') {
         alert('Missing Gemini API Key. Please add VITE_GEMINI_API_KEY to your environment variables in Vercel/Netlify.');
+      } else if (error.message?.includes('429') || error.message?.toLowerCase().includes('quota')) {
+        alert('API Quota Exceeded: You have reached the free tier limit for the AI model (15 requests per minute or 1,500 per day). Please wait a minute and try again, or upgrade your API key billing tier.');
       } else {
         alert(`Failed to calculate materials: ${error.message || 'Check console for details.'}`);
       }
@@ -363,8 +365,13 @@ export default function MaterialCalculation() {
                 </tr>
               </tbody>
             </table>
-            <div style={{ marginTop: '16px', textAlign: 'right', fontWeight: 700, color: 'var(--primary)', fontSize: '18px' }}>
-              Total Estimated Cost: Rs. {calculationResult.totalCost.toLocaleString()}
+            <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+              <div style={{ fontSize: '13px', fontWeight: 600, color: '#b45309', backgroundColor: '#fef3c7', padding: '8px 12px', borderRadius: '6px', border: '1px solid #fde68a' }}>
+                ✦ This estimation is generated using AI. Please Contact with us for detailed and accurate estimation.
+              </div>
+              <div style={{ textAlign: 'right', fontWeight: 700, color: 'var(--primary)', fontSize: '18px' }}>
+                Total Estimated Cost: Rs. {calculationResult.totalCost.toLocaleString()}
+              </div>
             </div>
           </div>
         )}

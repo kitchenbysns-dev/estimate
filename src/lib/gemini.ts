@@ -53,7 +53,7 @@ export async function generateEstimation(
 
   const ai = getAiClient();
   const response = await ai.models.generateContent({
-    model: 'gemini-2.0-flash',
+    model: 'gemini-flash-latest',
     contents: { parts },
     config: {
       temperature: 0.1,
@@ -139,7 +139,7 @@ export async function generateMaterialCalculation(
 
   const ai = getAiClient();
   const response = await ai.models.generateContent({
-    model: 'gemini-2.0-flash',
+    model: 'gemini-flash-latest',
     contents: { parts },
     config: {
       temperature: 0.1,

@@ -71,6 +71,8 @@ export default function NewEstimation() {
       console.error(error);
       if (error.message === 'MISSING_API_KEY') {
         alert('Missing Gemini API Key. Please add VITE_GEMINI_API_KEY to your environment variables in Vercel/Netlify.');
+      } else if (error.message?.includes('429') || error.message?.toLowerCase().includes('quota')) {
+        alert('API Quota Exceeded: You have reached the free tier limit for the AI model (15 requests per minute or 1,500 per day). Please wait a minute and try again, or upgrade your API key billing tier.');
       } else {
         alert(`Failed to generate estimation: ${error.message || 'Check console for details.'}`);
       }
@@ -299,6 +301,7 @@ export default function NewEstimation() {
                   <th style={{ textAlign: 'right' }}>Rate (Rs.)</th>
                   <th style={{ textAlign: 'right' }}>Qty</th>
                   <th style={{ textAlign: 'right' }}>Line Total</th>
+                  <th style={{ width: '40px' }}></th>
                 </tr>
               </thead>
               <tbody>
@@ -310,12 +313,26 @@ export default function NewEstimation() {
                     <td style={{ textAlign: 'right' }}>{item.unitCost.toLocaleString()}</td>
                     <td style={{ textAlign: 'right' }}>{item.quantity}</td>
                     <td style={{ textAlign: 'right' }} className="cost-positive">Rs. {item.totalCost.toLocaleString()}</td>
+                    <td>
+                      <button 
+                        onClick={() => handleDeleteItem(item.id)}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', padding: '4px' }}
+                        title="Delete Item"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-            <div style={{ marginTop: '16px', textAlign: 'right', fontWeight: 700, color: 'var(--primary)' }}>
-              Current Subtotal: Rs. {generatedItems.reduce((sum, i) => sum + i.totalCost, 0).toLocaleString()}
+            <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+              <div style={{ fontSize: '13px', fontWeight: 600, color: '#b45309', backgroundColor: '#fef3c7', padding: '8px 12px', borderRadius: '6px', border: '1px solid #fde68a' }}>
+                ✦ This estimation is generated using AI. Please Contact with us for detailed and accurate estimation.
+              </div>
+              <div style={{ textAlign: 'right', fontWeight: 700, color: 'var(--primary)' }}>
+                Current Subtotal: Rs. {generatedItems.reduce((sum, i) => sum + i.totalCost, 0).toLocaleString()}
+              </div>
             </div>
           </div>
         </>

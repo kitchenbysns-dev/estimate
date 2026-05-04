@@ -152,8 +152,13 @@ export default function ViewEstimation() {
             ))}
           </tbody>
         </table>
-        <div style={{ marginTop: '16px', textAlign: 'right', fontWeight: 700, color: 'var(--primary)' }}>
-          Current Subtotal: Rs. {currentTotal.toLocaleString()}
+        <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+          <div style={{ fontSize: '13px', fontWeight: 600, color: '#b45309', backgroundColor: '#fef3c7', padding: '8px 12px', borderRadius: '6px', border: '1px solid #fde68a' }}>
+            ✦ This estimation is generated using AI. Please Contact with us for detailed and accurate estimation.
+          </div>
+          <div style={{ textAlign: 'right', fontWeight: 700, color: 'var(--primary)' }}>
+            Current Subtotal: Rs. {currentTotal.toLocaleString()}
+          </div>
         </div>
       </div>
     </div>

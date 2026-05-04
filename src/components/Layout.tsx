@@ -48,6 +48,17 @@ export function Layout() {
         <main className="main-content" style={{ flex: 1, overflowY: 'auto' }}>
           <Outlet />
         </main>
+        
+        <footer style={{ 
+          padding: '12px 24px', 
+          textAlign: 'center', 
+          fontSize: '12px', 
+          color: 'var(--text-muted)',
+          borderTop: '1px solid var(--border)',
+          backgroundColor: 'rgba(255, 255, 255, 0.5)'
+        }}>
+          Created by and All Rights Reserved in Shape and Structure Builders Pvt. Ltd.
+        </footer>
       </div>
     </div>
   );
