@@ -12,21 +12,24 @@ import ViewEstimation from './pages/ViewEstimation';
 import Templates from './pages/Templates';
 import Settings from './pages/Settings';
 import MaterialCalculation from './pages/MaterialCalculation';
+import { AuthProvider } from './components/AuthProvider';
 
 export default function App() {
   return (
-    <HashRouter>
-      <Routes>
-        <Route path="/" element={<Layout />}>
-          <Route index element={<Dashboard />} />
-          <Route path="projects/:id" element={<ProjectDetails />} />
-          <Route path="projects/:id/new-estimation" element={<NewEstimation />} />
-          <Route path="projects/:id/estimations/:estId" element={<ViewEstimation />} />
-          <Route path="projects/:id/material-calculation" element={<MaterialCalculation />} />
-          <Route path="templates" element={<Templates />} />
-          <Route path="settings" element={<Settings />} />
-        </Route>
-      </Routes>
-    </HashRouter>
+    <AuthProvider>
+      <HashRouter>
+        <Routes>
+          <Route path="/" element={<Layout />}>
+            <Route index element={<Dashboard />} />
+            <Route path="projects/:id" element={<ProjectDetails />} />
+            <Route path="projects/:id/new-estimation" element={<NewEstimation />} />
+            <Route path="projects/:id/estimations/:estId" element={<ViewEstimation />} />
+            <Route path="projects/:id/material-calculation" element={<MaterialCalculation />} />
+            <Route path="templates" element={<Templates />} />
+            <Route path="settings" element={<Settings />} />
+          </Route>
+        </Routes>
+      </HashRouter>
+    </AuthProvider>
   );
 }

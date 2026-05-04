@@ -18,10 +18,24 @@ export default function Settings() {
   const [rates, setRates] = useState<Rate[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [apiKey, setApiKey] = useState(() => localStorage.getItem('gemini_api_key') || '');
+  const [savingKey, setSavingKey] = useState(false);
 
   useEffect(() => {
     fetchRates();
   }, []);
+
+  const handleSaveKey = () => {
+    setSavingKey(true);
+    if (apiKey.trim()) {
+      localStorage.setItem('gemini_api_key', apiKey.trim());
+      alert('API Key saved to your browser!');
+    } else {
+      localStorage.removeItem('gemini_api_key');
+      alert('Custom API Key removed. Using default.');
+    }
+    setTimeout(() => setSavingKey(false), 500);
+  };
 
   const fetchRates = async () => {
     try {
@@ -96,7 +110,7 @@ export default function Settings() {
       <header className="page-header">
         <div className="project-title">
           <h1>Settings & Rates</h1>
-          <p>Manage material and labor rates for estimations.</p>
+          <p>Manage application settings, API keys, and material/labor rates.</p>
         </div>
         <div className="actions">
           <button className="btn btn-primary" onClick={handleSaveRates} disabled={saving || loading}>
@@ -105,6 +119,29 @@ export default function Settings() {
           </button>
         </div>
       </header>
+
+      <div className="theme-card">
+        <div className="theme-card-header">
+          <span>AI Configuration (Optional)</span>
+        </div>
+        <div style={{ padding: '24px' }}>
+          <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>
+            If you encounter "Quota Exceeded" errors, you can provide your own Gemini API key. This key is saved locally in your browser and never sent to our servers.
+          </p>
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <input 
+              type="password" 
+              value={apiKey} 
+              onChange={e => setApiKey(e.target.value)} 
+              placeholder="Enter your Gemini API key"
+              style={{ flex: 1, padding: '10px 14px', borderRadius: '6px', border: '1px solid var(--border)', fontSize: '14px' }}
+            />
+            <button className="btn btn-secondary" onClick={handleSaveKey} disabled={savingKey}>
+               {savingKey ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Save Key'}
+            </button>
+          </div>
+        </div>
+      </div>
 
       <div className="theme-card">
         <div className="theme-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

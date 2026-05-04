@@ -6,6 +6,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { store } from '../lib/store';
 import { generateEstimation } from '../lib/gemini';
 import { Estimation, EstimationItem, Template } from '../types';
+import { useAuth } from '../components/AuthProvider';
 
 export default function NewEstimation() {
   const { id } = useParams<{ id: string }>();
@@ -56,8 +57,15 @@ export default function NewEstimation() {
     (drawingMode === 'With Drawing' && !fileBase64) || 
     (drawingMode === 'Without Drawing' && (!totalArea || !totalFloors || !manualInput.trim()));
 
+  const { incrementEstimateCount, user, userData } = useAuth();
+
   const handleGenerate = async () => {
-    if (!id) return;
+    if (!id || !user || !userData) return;
+
+    if (userData.estimateCount >= 3) {
+      alert('Quota limit expires, contact with us for further details');
+      return;
+    }
 
     setIsGenerating(true);
     try {
@@ -65,14 +73,22 @@ export default function NewEstimation() {
       const categories = template ? template.categories : ['General'];
       
       const result = await generateEstimation(fileBase64, mimeType, manualInput, categories, measurementSystem);
+      
+      const incremented = await incrementEstimateCount();
+      if (!incremented) {
+         alert('Quota limit expires, contact with us for further details');
+         setIsGenerating(false);
+         return;
+      }
+
       setGeneratedItems(result.items);
       setEstimatedTime(result.estimatedTimeDays);
     } catch (error: any) {
       console.error(error);
       if (error.message === 'MISSING_API_KEY') {
         alert('Missing Gemini API Key. Please add VITE_GEMINI_API_KEY to your environment variables in Vercel/Netlify.');
-      } else if (error.message?.includes('429') || error.message?.toLowerCase().includes('quota')) {
-        alert('API Quota Exceeded: You have reached the free tier limit for the AI model (15 requests per minute or 1,500 per day). Please wait a minute and try again, or upgrade your API key billing tier.');
+      } else if (error.message?.includes('429') || error.message?.toLowerCase().includes('quota') || error.message?.toLowerCase().includes('too many requests')) {
+        alert('Please try again later');
       } else {
         alert(`Failed to generate estimation: ${error.message || 'Check console for details.'}`);
       }

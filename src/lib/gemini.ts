@@ -3,9 +3,13 @@ import { EstimationItem } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 
 function getAiClient() {
+  // Try to get from localStorage first (User Setting bypass)
+  const localKey = typeof window !== 'undefined' ? localStorage.getItem('gemini_api_key') : null;
+  
   // Try to use Vite's import.meta.env first (for external deployments like Vercel/Netlify),
   // then fallback to process.env (for AI Studio's internal define config).
   const apiKey = 
+    localKey ||
     // @ts-ignore
     (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_GEMINI_API_KEY) || 
     (typeof process !== 'undefined' && process.env ? process.env.GEMINI_API_KEY : '') || 

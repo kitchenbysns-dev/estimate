@@ -7,6 +7,7 @@ import { collection, getDocs } from 'firebase/firestore';
 import { generateMaterialCalculation } from '../lib/gemini';
 import { store } from '../lib/store';
 import { Estimation, EstimationItem } from '../types';
+import { useAuth } from '../components/AuthProvider';
 
 export default function MaterialCalculation() {
   const { id } = useParams<{ id: string }>();
@@ -69,7 +70,16 @@ export default function MaterialCalculation() {
       (drawingMode === 'Without Drawing' && ((area !== '' && Number(area) > 0) || manualInput.trim() !== ''))
     );
 
+  const { incrementEstimateCount, user, userData } = useAuth();
+
   const handleCalculate = async () => {
+    if (!id || !user || !userData) return;
+
+    if ((fileBase64 || manualInput) && userData.estimateCount >= 3) {
+      alert('Quota limit expires, contact with us for further details');
+      return;
+    }
+
     setIsGenerating(true);
     try {
       let cementBags = 0;
@@ -83,6 +93,14 @@ export default function MaterialCalculation() {
       if (fileBase64 || manualInput) {
         // Use AI if file or manual input is provided
         const aiResult = await generateMaterialCalculation(fileBase64, mimeType, manualInput, area, measurementSystem);
+        
+        const incremented = await incrementEstimateCount();
+        if (!incremented) {
+          alert('Quota limit expires, contact with us for further details');
+          setIsGenerating(false);
+          return;
+        }
+
         cementBags = aiResult.cement;
         sandCuFt = aiResult.sand;
         aggregateCuFt = aiResult.aggregate;
@@ -124,8 +142,8 @@ export default function MaterialCalculation() {
       console.error(error);
       if (error.message === 'MISSING_API_KEY') {
         alert('Missing Gemini API Key. Please add VITE_GEMINI_API_KEY to your environment variables in Vercel/Netlify.');
-      } else if (error.message?.includes('429') || error.message?.toLowerCase().includes('quota')) {
-        alert('API Quota Exceeded: You have reached the free tier limit for the AI model (15 requests per minute or 1,500 per day). Please wait a minute and try again, or upgrade your API key billing tier.');
+      } else if (error.message?.includes('429') || error.message?.toLowerCase().includes('quota') || error.message?.toLowerCase().includes('too many requests')) {
+        alert('Please try again later');
       } else {
         alert(`Failed to calculate materials: ${error.message || 'Check console for details.'}`);
       }
