@@ -17,7 +17,7 @@ body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     background-color: var(--bg);
     color: var(--text-main);
-    background-image: linear-gradient(rgba(248, 250, 252, 0.92), rgba(248, 250, 252, 0.92)), url('https://github.com/stha123surya-dotcom/website-practice/blob/main/Images/logo.png?raw=true');
+    background-image: linear-gradient(rgba(248, 250, 252, 0.92), rgba(248, 250, 252, 0.92)), url('/logo.png');
     background-size: 50vmin;
     background-position: center;
     background-attachment: fixed;

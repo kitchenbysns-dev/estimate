@@ -57,13 +57,13 @@ export default function NewEstimation() {
     (drawingMode === 'With Drawing' && !fileBase64) || 
     (drawingMode === 'Without Drawing' && (!totalArea || !totalFloors || !manualInput.trim()));
 
-  const { incrementEstimateCount, user, userData } = useAuth();
+  const { incrementEstimateCount, user, userData, isAdmin } = useAuth();
 
   const handleGenerate = async () => {
     if (!id || !user || !userData) return;
 
-    if (userData.estimateCount >= 3) {
-      alert('Quota limit expires, contact with us for further details');
+    if (!isAdmin && userData.estimateCount >= 3) {
+      alert('You have reached your lifetime limit of 3 free estimate generations. Please contact us for further details to continue using Estimatiq.');
       return;
     }
 
@@ -76,19 +76,46 @@ export default function NewEstimation() {
       
       const incremented = await incrementEstimateCount();
       if (!incremented) {
-         alert('Quota limit expires, contact with us for further details');
+         alert('You have reached your lifetime limit of 3 free estimate generations. Please contact us for further details to continue using Estimatiq.');
          setIsGenerating(false);
          return;
       }
 
       setGeneratedItems(result.items);
       setEstimatedTime(result.estimatedTimeDays);
+
+      // Auto-save
+      const totalMaterial = result.items.filter(i => i.type === 'Material').reduce((sum, i) => sum + i.totalCost, 0);
+      const totalLabor = result.items.filter(i => i.type === 'Labor').reduce((sum, i) => sum + i.totalCost, 0);
+      const totalEquipment = result.items.filter(i => i.type === 'Equipment').reduce((sum, i) => sum + i.totalCost, 0);
+      const totalCost = result.items.reduce((sum, i) => sum + i.totalCost, 0);
+
+      const estimation: Estimation = {
+        id: uuidv4(),
+        projectId: id,
+        name: name || 'AI Generated Estimation',
+        status: 'Draft',
+        items: result.items,
+        totalMaterialCost: totalMaterial,
+        totalLaborCost: totalLabor,
+        totalEquipmentCost: totalEquipment,
+        totalCost,
+        estimatedTimeDays: result.estimatedTimeDays,
+        totalArea: totalArea === '' ? undefined : totalArea,
+        totalFloors: totalFloors === '' ? undefined : totalFloors,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      store.saveEstimation(estimation);
+      alert('Estimation generated and saved successfully!');
+      navigate(`/projects/${id}`);
     } catch (error: any) {
       console.error(error);
       if (error.message === 'MISSING_API_KEY') {
         alert('Missing Gemini API Key. Please add VITE_GEMINI_API_KEY to your environment variables in Vercel/Netlify.');
       } else if (error.message?.includes('429') || error.message?.toLowerCase().includes('quota') || error.message?.toLowerCase().includes('too many requests')) {
-        alert('Please try again later');
+        alert('Our AI service is currently experiencing high demand. Please try again later.');
       } else {
         alert(`Failed to generate estimation: ${error.message || 'Check console for details.'}`);
       }
@@ -103,35 +130,6 @@ export default function NewEstimation() {
     }
   };
 
-  const handleSave = () => {
-    if (!id || !generatedItems) return;
-
-    const totalMaterial = generatedItems.filter(i => i.type === 'Material').reduce((sum, i) => sum + i.totalCost, 0);
-    const totalLabor = generatedItems.filter(i => i.type === 'Labor').reduce((sum, i) => sum + i.totalCost, 0);
-    const totalEquipment = generatedItems.filter(i => i.type === 'Equipment').reduce((sum, i) => sum + i.totalCost, 0);
-    const totalCost = generatedItems.reduce((sum, i) => sum + i.totalCost, 0);
-
-    const estimation: Estimation = {
-      id: uuidv4(),
-      projectId: id,
-      name,
-      status: 'Draft',
-      items: generatedItems,
-      totalMaterialCost: totalMaterial,
-      totalLaborCost: totalLabor,
-      totalEquipmentCost: totalEquipment,
-      totalCost,
-      estimatedTimeDays: estimatedTime,
-      totalArea: totalArea === '' ? undefined : totalArea,
-      totalFloors: totalFloors === '' ? undefined : totalFloors,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    store.saveEstimation(estimation);
-    navigate(`/projects/${id}`);
-  };
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       <div style={{ display: 'flex', alignItems: 'center', fontSize: '14px', color: 'var(--text-muted)', cursor: 'pointer' }} onClick={() => navigate(`/projects/${id}`)}>
@@ -142,13 +140,6 @@ export default function NewEstimation() {
         <div className="project-title">
           <h1>Create Estimation</h1>
           <p>Provide blueprints and manual details for the AI to analyze.</p>
-        </div>
-        <div className="actions">
-          {generatedItems && (
-            <button className="btn btn-primary" onClick={handleSave}>
-              <Save className="mr-2 h-4 w-4" /> Save Estimation
-            </button>
-          )}
         </div>
       </header>
 
@@ -276,6 +267,9 @@ export default function NewEstimation() {
                 'Generate Estimation'
               )}
             </button>
+            <div style={{ marginTop: '8px', textAlign: 'center', fontSize: '12px', fontWeight: 500, color: isAdmin ? 'var(--primary)' : 'var(--text-muted)' }}>
+              {isAdmin ? '✨ You have unlimited AI generations (Admin)' : `Remaining free generations: ${Math.max(0, 3 - (userData?.estimateCount || 0))}/3`}
+            </div>
             <div style={{ marginTop: '16px', fontSize: '11px', lineHeight: 1.4, color: 'var(--text-muted)' }}>
               * AI will analyze the {drawingMode === 'With Drawing' ? 'PDF/Image' : 'manual input'} to generate a detailed cost breakdown.
             </div>

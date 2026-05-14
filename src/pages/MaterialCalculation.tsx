@@ -70,13 +70,13 @@ export default function MaterialCalculation() {
       (drawingMode === 'Without Drawing' && ((area !== '' && Number(area) > 0) || manualInput.trim() !== ''))
     );
 
-  const { incrementEstimateCount, user, userData } = useAuth();
+  const { incrementEstimateCount, user, userData, isAdmin } = useAuth();
 
   const handleCalculate = async () => {
     if (!id || !user || !userData) return;
 
-    if ((fileBase64 || manualInput) && userData.estimateCount >= 3) {
-      alert('Quota limit expires, contact with us for further details');
+    if ((fileBase64 || manualInput) && !isAdmin && userData.estimateCount >= 3) {
+      alert('You have reached your lifetime limit of 3 free estimate generations. Please contact us for further details to continue using Estimatiq.');
       return;
     }
 
@@ -96,7 +96,7 @@ export default function MaterialCalculation() {
         
         const incremented = await incrementEstimateCount();
         if (!incremented) {
-          alert('Quota limit expires, contact with us for further details');
+          alert('You have reached your lifetime limit of 3 free estimate generations. Please contact us for further details to continue using Estimatiq.');
           setIsGenerating(false);
           return;
         }
@@ -128,7 +128,7 @@ export default function MaterialCalculation() {
       const paintsPrice = getRatePrice('Paints', 500);
       const tilesPrice = getRatePrice('Tiles', 80);
 
-      setCalculationResult({
+      const resultData = {
         cement: { qty: cementBags, cost: cementBags * cementPrice },
         sand: { qty: sandCuFt, cost: sandCuFt * sandPrice },
         aggregate: { qty: aggregateCuFt, cost: aggregateCuFt * aggregatePrice },
@@ -137,13 +137,63 @@ export default function MaterialCalculation() {
         paints: { qty: paintsLtr, cost: paintsLtr * paintsPrice },
         tiles: { qty: tilesSqFt, cost: tilesSqFt * tilesPrice },
         totalCost: (cementBags * cementPrice) + (sandCuFt * sandPrice) + (aggregateCuFt * aggregatePrice) + (steelKg * steelPrice) + (bricksPcs * bricksPrice) + (paintsLtr * paintsPrice) + (tilesSqFt * tilesPrice)
+      };
+
+      setCalculationResult(resultData);
+
+      // Auto-save
+      const targetAreaUnit = measurementSystem === 'Imperial (Sq.ft)' ? 'sq.ft' : 'sq.m';
+      const materialsItems = [
+        { key: 'cement', desc: 'Cement', unit: 'Bags (50kg)' },
+        { key: 'sand', desc: 'Sand', unit: 'Cu. Ft' },
+        { key: 'aggregate', desc: 'Aggregate', unit: 'Cu. Ft' },
+        { key: 'steel', desc: 'Steel', unit: 'Kg' },
+        { key: 'bricks', desc: 'Bricks', unit: 'Pieces' },
+        { key: 'paints', desc: 'Paints', unit: 'Liters' },
+        { key: 'tiles', desc: 'Tiles', unit: targetAreaUnit },
+      ];
+
+      const items: EstimationItem[] = materialsItems.map(mat => {
+        const data = (resultData as any)[mat.key];
+        return {
+          id: uuidv4(),
+          category: 'Materials',
+          description: mat.desc,
+          type: 'Material' as any,
+          quantity: data.qty,
+          unit: mat.unit,
+          unitCost: data.qty > 0 ? data.cost / data.qty : 0,
+          totalCost: data.cost,
+        };
       });
+
+      const totalCostResult = items.reduce((sum, item) => sum + item.totalCost, 0);
+
+      const estimation: Estimation = {
+        id: uuidv4(),
+        projectId: id,
+        name: `Material Calculation - ${new Date().toLocaleDateString()}`,
+        status: 'Draft',
+        items,
+        totalMaterialCost: totalCostResult,
+        totalLaborCost: 0,
+        totalEquipmentCost: 0,
+        totalCost: totalCostResult,
+        estimatedTimeDays: 0,
+        totalArea: area === '' ? undefined : area,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      store.saveEstimation(estimation);
+      alert('Material calculation generated and saved successfully!');
+      navigate(`/projects/${id}`);
     } catch (error: any) {
       console.error(error);
       if (error.message === 'MISSING_API_KEY') {
         alert('Missing Gemini API Key. Please add VITE_GEMINI_API_KEY to your environment variables in Vercel/Netlify.');
       } else if (error.message?.includes('429') || error.message?.toLowerCase().includes('quota') || error.message?.toLowerCase().includes('too many requests')) {
-        alert('Please try again later');
+        alert('Our AI service is currently experiencing high demand. Please try again later.');
       } else {
         alert(`Failed to calculate materials: ${error.message || 'Check console for details.'}`);
       }
@@ -152,56 +202,7 @@ export default function MaterialCalculation() {
     }
   };
 
-  const handleSave = () => {
-    if (!id || !calculationResult) return;
 
-    const targetAreaUnit = measurementSystem === 'Imperial (Sq.ft)' ? 'sq.ft' : 'sq.m';
-
-    const materials = [
-      { key: 'cement', desc: 'Cement', unit: 'Bags (50kg)' },
-      { key: 'sand', desc: 'Sand', unit: 'Cu. Ft' },
-      { key: 'aggregate', desc: 'Aggregate', unit: 'Cu. Ft' },
-      { key: 'steel', desc: 'Steel', unit: 'Kg' },
-      { key: 'bricks', desc: 'Bricks', unit: 'Pieces' },
-      { key: 'paints', desc: 'Paints', unit: 'Liters' },
-      { key: 'tiles', desc: 'Tiles', unit: targetAreaUnit },
-    ];
-
-    const items: EstimationItem[] = materials.map(mat => {
-      const data = calculationResult[mat.key];
-      return {
-        id: uuidv4(),
-        category: 'Materials',
-        description: mat.desc,
-        quantity: data.qty,
-        unit: mat.unit,
-        unitCost: data.qty ? data.cost / data.qty : 0,
-        totalCost: data.cost,
-        type: 'Material'
-      };
-    }).filter(item => item.quantity > 0);
-
-    const totalCost = items.reduce((sum, item) => sum + item.totalCost, 0);
-
-    const estimation: Estimation = {
-      id: uuidv4(),
-      projectId: id,
-      name: `Material Calculation${area ? ` (${area} sq ft)` : ''}`,
-      status: 'Draft',
-      items,
-      totalMaterialCost: totalCost,
-      totalLaborCost: 0,
-      totalEquipmentCost: 0,
-      totalCost,
-      estimatedTimeDays: 0,
-      totalArea: area === '' ? undefined : area,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    store.saveEstimation(estimation);
-    navigate(`/projects/${id}`);
-  };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -213,13 +214,6 @@ export default function MaterialCalculation() {
         <div className="project-title">
           <h1>Material Calculation</h1>
           <p>Calculate required materials based on area, blueprints, and current rates.</p>
-        </div>
-        <div className="actions">
-          {calculationResult && (
-            <button className="btn btn-primary" onClick={handleSave}>
-              <Save className="mr-2 h-4 w-4" /> Save as Estimation
-            </button>
-          )}
         </div>
       </header>
 
@@ -319,6 +313,9 @@ export default function MaterialCalculation() {
               <><Calculator className="mr-2 h-4 w-4" /> Calculate Materials</>
             )}
           </button>
+          <div style={{ marginTop: '8px', textAlign: 'center', fontSize: '12px', fontWeight: 500, color: isAdmin ? 'var(--primary)' : 'var(--text-muted)' }}>
+            {isAdmin ? '✨ You have unlimited AI generations (Admin)' : `Remaining free generations: ${Math.max(0, 3 - (userData?.estimateCount || 0))}/3`}
+          </div>
           <div style={{ marginTop: '16px', fontSize: '11px', lineHeight: 1.4, color: 'var(--text-muted)' }}>
             * Select an input method to provide parameters and calculate materials.
           </div>

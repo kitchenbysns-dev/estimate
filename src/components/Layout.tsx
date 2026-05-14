@@ -21,7 +21,9 @@ export function Layout() {
     return (
       <div style={{ display: 'flex', height: '100vh', alignItems: 'center', flexDirection: 'column', justifyContent: 'center', backgroundColor: 'var(--bg-secondary)', padding: '24px' }}>
         <div style={{ backgroundColor: 'white', padding: '40px', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', textAlign: 'center', maxWidth: '400px', width: '100%' }}>
-          <Building2 className="h-12 w-12 mx-auto" style={{ color: 'var(--primary)', marginBottom: '16px' }} />
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px' }}>
+            <img src="/logo.png" alt="Logo" style={{ width: '48px', height: '48px', objectFit: 'contain' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+          </div>
           <h1 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '8px' }}>Welcome to ESTIMATIQ</h1>
           <p style={{ color: 'var(--text-muted)', marginBottom: '32px' }}>Please sign in to continue</p>
           <button className="btn btn-primary" style={{ width: '100%', display: 'flex', justifyContent: 'center', gap: '8px', padding: '12px' }} onClick={signInWithGoogle}>
@@ -38,9 +40,9 @@ export function Layout() {
       {/* Sidebar */}
       <aside style={{ display: 'flex', flexDirection: 'column' }}>
         <div>
-          <div className="logo">
-            <Building2 className="h-6 w-6 mr-2" />
-            ESTIMATIQ.
+          <div className="logo" style={{ display: 'flex', alignItems: 'center' }}>
+            <img src="/logo.png" alt="Logo" style={{ width: '28px', height: '28px', marginRight: '8px', objectFit: 'contain' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+            <span style={{ fontWeight: 800 }}>ESTIMATIQ.</span>
           </div>
           {navigation.map((item) => {
             const isActive = location.pathname === item.href || 

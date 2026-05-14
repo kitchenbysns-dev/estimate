@@ -38,7 +38,7 @@ export default function Dashboard() {
     setNewProject({ name: '', clientName: '', location: '' });
   };
 
-  const handleDeleteProject = (e: React.MouseEvent, id: string) => {
+  const handleDeleteProject = (e: any, id: string) => {
     e.preventDefault();
     e.stopPropagation();
     if (confirm('Are you sure you want to delete this project and all its estimations?')) {

@@ -11,7 +11,7 @@ service cloud.firestore {
     function isAdmin() {
       return isAuthenticated() && (
         request.auth.token.email == 'neki123nki@gmail.com' ||
-        request.auth.token.email == 'shapeandstructure@gmail.com' ||
+        request.auth.token.email == 'kitchenbysns@gmail.com' ||
         request.auth.token.email == 'stha123surya@gmail.com'
       );
     }
@@ -28,8 +28,9 @@ service cloud.firestore {
     }
 
     match /rates/{rateId} {
-        // Removed all authentication and validation to allow free access as requested by user
-        allow read, write: if true;
+        // Anyone can read, but only admins can write to secure the database
+        allow read: if true;
+        allow write: if isAdmin();
     }
     
     match /users/{userId} {
